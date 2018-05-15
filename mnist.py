@@ -56,6 +56,27 @@ def show(image):
     plt.show()
     plt.close()
 
+def preprocess(imTrainset):
+    thresh = 160
+    kern = np.ones((2, 2), np.uint8)
+
+    ppTrainset = []
+    ppFlatten = []
+
+    for _, img in imTrainset:
+        _, bimg = cv2.threshold(img, thresh, 255, cv2.THRESH_BINARY)
+
+        ppimg = cv2.morphologyEx(bimg, cv2.MORPH_CLOSE, kern)
+
+        _, contours, _ = cv2.findContours(ppimg, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cnt = contours[0]
+        x, y, w, h = cv2.boundingRect(cnt)
+        crop = cv2.resize(ppimg[y:y+h, x:x+w], (28, 28), interpolation=cv2.INTER_NEAREST)
+        ppTrainset.append(crop)
+        ppFlatten.append(crop.flatten())
+
+    return ppFlatten, ppTrainset
+
 def main():
 
     root = Tk()
@@ -67,16 +88,10 @@ def main():
 
     imTrainset = list(read(dataset="training", path=datadir))
 
-    img = imTrainset[0][1]
-    show(img)
+    ppFlatten, ppTrainset = preprocess(imTrainset[0:10])
 
-    kern = np.ones((2, 2), np.uint8)
-
-    _, bimg = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
-    show(bimg)
-
-    morph = cv2.morphologyEx(bimg, cv2.MORPH_CLOSE, kern, iterations=1)
-    show(morph)
+    for img in ppTrainset:
+        show(img)
 
 if __name__ == "__main__":
     main()
