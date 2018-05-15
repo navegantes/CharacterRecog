@@ -56,14 +56,12 @@ def show(image):
     plt.show()
     plt.close()
 
-def preprocess(imTrainset):
-    thresh = 160
+def preprocess(imTrainset, final_sz, thresh, use_flattern=True):
     kern = np.ones((2, 2), np.uint8)
 
     ppTrainset = []
-    ppFlatten = []
 
-    for _, img in imTrainset:
+    for label, img in imTrainset:
         _, bimg = cv2.threshold(img, thresh, 255, cv2.THRESH_BINARY)
 
         ppimg = cv2.morphologyEx(bimg, cv2.MORPH_CLOSE, kern)
@@ -71,11 +69,13 @@ def preprocess(imTrainset):
         _, contours, _ = cv2.findContours(ppimg, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cnt = contours[0]
         x, y, w, h = cv2.boundingRect(cnt)
-        crop = cv2.resize(ppimg[y:y+h, x:x+w], (28, 28), interpolation=cv2.INTER_NEAREST)
-        ppTrainset.append(crop)
-        ppFlatten.append(crop.flatten())
+        crop = cv2.resize(ppimg[y:y+h, x:x+w], final_sz, interpolation=cv2.INTER_NEAREST)
+        if use_flattern:
+            ppTrainset.append((label, crop.flatten()))
+        else:
+            ppTrainset.append((label, crop))
 
-    return ppFlatten, ppTrainset
+    return ppTrainset
 
 def main():
 
@@ -86,12 +86,13 @@ def main():
 
     root.destroy()
 
-    imTrainset = list(read(dataset="training", path=datadir))
+    imTrainset = list(read(dataset="training", path=datadir))[0:10]
 
-    ppFlatten, ppTrainset = preprocess(imTrainset[0:10])
+    ppTrainset = preprocess(imTrainset, final_sz=(28, 28), thresh=180, use_flattern=False)
 
-    for img in ppTrainset:
+    for (_, img), (_, ppi) in zip(imTrainset, ppTrainset):
         show(img)
+        show(ppi)
 
 if __name__ == "__main__":
     main()
